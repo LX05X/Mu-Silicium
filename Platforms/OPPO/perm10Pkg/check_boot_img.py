@@ -6,11 +6,14 @@ BootShim. This verifies the container, the shim's copy target and the FD size;
 it says nothing about whether the firmware boots.
 """
 import argparse
+import lzma
 import re
 import struct
 import uuid
 import zlib
 from pathlib import Path
+
+LZMA_GUIDED = uuid.UUID("EE4E5898-3914-4259-9D6E-DC7BD79403CF").bytes_le
 
 FD_MAGIC_OFFSET = 0x28
 
@@ -68,6 +71,8 @@ def main():
         raise SystemExit(f"FV length {length:#x} differs from the declared FD size {expected_size:#x}")
     if shim_base + shim_size > 0x9FF00000:
         raise SystemExit("shim target leaves the PERM10 UEFI FD window")
+    payload = expand_lzma(payload)
+
     if args.driver_dir:
         guid_pattern = re.compile(r"FILE_GUID\s*=\s*([0-9A-Fa-f-]{36})")
         expected = {}
@@ -85,6 +90,37 @@ def main():
             raise SystemExit(f"drivers missing from the payload: {', '.join(sorted(missing)[:10])}")
 
     print("OK: container, shim target and FD size are consistent")
+
+
+def expand_lzma(blob):
+    """Decompress EDK2 LZMA guided sections so inner module GUIDs are visible."""
+    total = 0
+    offset = 0
+    while True:
+        hit = blob.find(LZMA_GUIDED, offset)
+        if hit < 0:
+            return blob
+        section = hit - 4
+        offset = hit + 16
+        if section < 0:
+            continue
+        common = struct.unpack_from("<I", blob, section)[0]
+        section_type = (common >> 24) & 0xFF
+        section_size = common & 0xFFFFFF
+        if section_type != 0x02 or section_size < 32 or section + section_size > len(blob):
+            continue
+        data_offset = struct.unpack_from("<H", blob, section + 20)[0]
+        start = section + data_offset
+        try:
+            inner = lzma.LZMADecompressor(format=lzma.FORMAT_ALONE).decompress(
+                blob[start : section + section_size]
+            )
+        except lzma.LZMAError:
+            continue
+        blob = blob + inner
+        total += len(inner)
+        print(f"expanded LZMA section at {section:#x}: {len(inner):#x} bytes")
+    return blob
 
 
 if __name__ == "__main__":
