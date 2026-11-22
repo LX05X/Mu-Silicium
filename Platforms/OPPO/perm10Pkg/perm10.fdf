@@ -82,6 +82,9 @@ READ_LOCK_STATUS   = TRUE
   !include Include/APRIORI.inc
   !include Include/DXE.inc
 
+  # RAM Manager provides the usable DDR ranges to DXE and to a Linux payload.
+  INF SiliciumPkg/Drivers/RamManagerDxe/RamManagerDxe.inf
+
 [FV.FVMAIN_COMPACT]
 FvAlignment        = 8
 ERASE_POLARITY     = 1
