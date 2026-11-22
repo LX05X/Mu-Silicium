@@ -7,6 +7,14 @@
 model_count = 1
 
 #
+# Boot Shim Configs
+# The shim is prepended so the payload can be delivered as an Android boot
+# image, which is how the working Reno7 (PFJM10) package does it.
+#
+[boot_shim]
+requires_kernel_header = true
+
+#
 # UEFI FD Configs
 # PERM10 605 XBL maps the UEFI FD at 0x9FC00000 with size 0x300000
 # ("UEFI FD" row in Resources/uefiplatLA.cfg).
@@ -16,10 +24,17 @@ base = 0x9FC00000
 size = 0x300000
 
 #
-# Payload Configs
-# A raw payload is emitted instead of an Android boot image: no BootShim has
-# been validated for PERM10, and an Android boot image would additionally
-# require a Resources/DTBs/perm10.dtb that does not exist yet.
+# Android Boot Image Kernel Configs
+# The DTB is not appended: UEFI does not consume it and the Linux tree is
+# loaded from the ESP by GRUB instead.
 #
-[payload]
-type = "raw"
+[boot_image_kernel]
+kernel_compression = "gzip"
+append_dtb         = false
+
+#
+# Android Boot Image Configs
+# Header version 0 matches the Reno7 package that boots on this SoC family.
+#
+[boot_image]
+header_version = 0

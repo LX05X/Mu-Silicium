@@ -107,7 +107,12 @@ jobs:
           set -euo pipefail
           mkdir -p artifact
           cp -v build-perm10.log artifact/ || true
-          cp -v Mu-perm10*.bin artifact/ || true
+          cp -v Mu-perm10*.bin artifact/ 2>/dev/null || true
+          cp -v Mu-perm10*.img artifact/ 2>/dev/null || true
+          for img in Mu-perm10*.img; do
+            [ -f "$img" ] || continue
+            python Platforms/OPPO/perm10Pkg/check_boot_img.py "$img" | tee artifact/boot-img-check.txt
+          done
           if [ -f Build/perm10Pkg/DEBUG_CLANGPDB/FV/SILICIUM_UEFI.fd ]; then
             fd=Build/perm10Pkg/DEBUG_CLANGPDB/FV/SILICIUM_UEFI.fd
             size=$(stat -c %s "$fd")
