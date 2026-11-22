@@ -29,6 +29,10 @@
   gQcomPkgTokenSpaceGuid.PcdPlatformType|"LA"
   gQcomPkgTokenSpaceGuid.PcdStorageIsUfs3|FALSE
 
+[BuildOptions]
+  # Enables the Perm10Trace framebuffer beacons in SiliciumPkg/Sec.
+  *_*_AARCH64_*_CC_FLAGS = -DPERM10_SEC_TRACE=1
+
 [LibraryClasses]
   MemoryMapLib|perm10Pkg/Library/MemoryMapLib/MemoryMapLib.inf
   ConfigurationMapLib|perm10Pkg/Library/ConfigurationMapLib/ConfigurationMapLib.inf

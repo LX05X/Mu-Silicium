@@ -88,21 +88,67 @@ InitializeMemory (VOID)
   return EFI_SUCCESS;
 }
 
+
+#ifdef PERM10_SEC_TRACE
+//
+// PERM10 bring-up instrumentation: paint the boot splash framebuffer so the
+// last completed initialisation step is visible without a serial port.
+// Colours are documented in Platforms/OPPO/perm10Pkg/README.md.
+//
+STATIC
+VOID
+Perm10Trace (
+  IN UINT32  Colour
+  )
+{
+  EFI_MEMORY_REGION_DESCRIPTOR  Region;
+  UINT32                       *Pixels;
+  UINTN                         Count;
+  UINTN                         Index;
+
+  Region.Address = 0;
+  Region.Length  = 0;
+  LocateMemoryRegionByName ("Display Reserved", &Region);
+  LocateMemoryRegionByName ("Display_Reserved", &Region);
+  if ((Region.Address == 0) || (Region.Length == 0)) {
+    return;
+  }
+
+  Pixels = (UINT32 *)(UINTN)Region.Address;
+  Count  = Region.Length / sizeof (UINT32);
+  if (Count > (16u * 1024 * 1024 / sizeof (UINT32))) {
+    Count = 16u * 1024 * 1024 / sizeof (UINT32);
+  }
+
+  for (Index = 0; Index < Count; Index++) {
+    Pixels[Index] = Colour;
+  }
+}
+#else
+#define Perm10Trace(colour)
+#endif
+
 STATIC
 VOID
 SecMain (VOID)
 {
   EFI_STATUS Status;
 
+  Perm10Trace (0x0000FFFF); // cyan: entered SecMain
+
   // Do Platform Specific Initialization
   PlatformInitialize ();
+  Perm10Trace (0x00FF0000); // red: PlatformInitialize returned
 
 #ifndef MDEPKG_NDEBUG
   // Initialize Serial Port
   Status = SerialPortInitialize ();
   if (EFI_ERROR (Status)) {
+    Perm10Trace (0x00FF00FF); // magenta: serial init failed
     return;
   }
+
+  Perm10Trace (0x00FFFF00); // yellow: serial init done
 
   // Print Firmware Version
   PrintFirmwareVersion ();
@@ -115,8 +161,11 @@ SecMain (VOID)
   // Initialize Memory
   Status = InitializeMemory ();
   if (EFI_ERROR (Status)) {
+    Perm10Trace (0x00FF0080); // pink: memory init failed
     return;
   }
+
+  Perm10Trace (0x0000FF00); // green: memory init done
 
   // Build CPU HOB
   BuildCpuHob (ArmGetPhysicalAddressBits (), PcdGet8 (PcdPrePiCpuIoSize));
@@ -127,8 +176,11 @@ SecMain (VOID)
   // Initialize Platform HOBs
   Status = PlatformPeim ();
   if (EFI_ERROR (Status)) {
+    Perm10Trace (0x00800040); // purple: PlatformPeim failed
     return;
   }
+
+  Perm10Trace (0x000000FF); // blue: PlatformPeim done
 
   // Run Library Cconstructors
   ProcessLibraryConstructorList ();
@@ -137,8 +189,11 @@ SecMain (VOID)
   Status = DecompressFirstFv ();
   if (EFI_ERROR (Status)) {
     DEBUG ((EFI_D_ERROR, "Failed to Decompress FV! Status = %r\n", Status));
+    Perm10Trace (0x00808000); // olive: FV decompression failed
     return;
   }
+
+  Perm10Trace (0x00FFFFFF); // white: FV decompressed
 
   // Load DXE Core
   Status = LoadDxeCoreFromFv (NULL, 0);
