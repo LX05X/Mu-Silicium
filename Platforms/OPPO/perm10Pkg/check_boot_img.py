@@ -6,7 +6,9 @@ BootShim. This verifies the container, the shim's copy target and the FD size;
 it says nothing about whether the firmware boots.
 """
 import argparse
+import re
 import struct
+import uuid
 import zlib
 from pathlib import Path
 
@@ -18,6 +20,11 @@ def main():
     parser.add_argument("image", type=Path)
     parser.add_argument("--fd-base", default="0x9FC00000")
     parser.add_argument("--fd-size", default="0x300000")
+    parser.add_argument(
+        "--driver-dir",
+        type=Path,
+        help="vendor driver tree whose FILE_GUIDs must appear in the payload",
+    )
     args = parser.parse_args()
 
     blob = args.image.read_bytes()
@@ -61,6 +68,22 @@ def main():
         raise SystemExit(f"FV length {length:#x} differs from the declared FD size {expected_size:#x}")
     if shim_base + shim_size > 0x9FF00000:
         raise SystemExit("shim target leaves the PERM10 UEFI FD window")
+    if args.driver_dir:
+        guid_pattern = re.compile(r"FILE_GUID\s*=\s*([0-9A-Fa-f-]{36})")
+        expected = {}
+        for inf in args.driver_dir.rglob("*.inf"):
+            match = guid_pattern.search(inf.read_text(errors="replace"))
+            if match:
+                expected[match.group(1).upper()] = inf.stem
+        if not expected:
+            raise SystemExit(f"no FILE_GUID found under {args.driver_dir}")
+        missing = [
+            name for guid, name in expected.items() if uuid.UUID(guid).bytes_le not in payload
+        ]
+        print(f"drivers referenced {len(expected)}, present {len(expected) - len(missing)}")
+        if missing:
+            raise SystemExit(f"drivers missing from the payload: {', '.join(sorted(missing)[:10])}")
+
     print("OK: container, shim target and FD size are consistent")
 
 
