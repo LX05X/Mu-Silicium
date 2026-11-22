@@ -39,8 +39,10 @@ STATIC
 VOID
 PrintFirmwareVersion (VOID)
 {
+#ifndef PERM10_SEC_TRACE
   // Clear Frame Buffer
   ClearFrameBuffer ();
+#endif
 
   // Print UEFI Version Message
   DEBUG ((EFI_D_WARN, "\n"));
@@ -91,8 +93,8 @@ InitializeMemory (VOID)
 
 #ifdef PERM10_SEC_TRACE
 //
-// PERM10 bring-up instrumentation: paint the boot splash framebuffer so the
-// last completed initialisation step is visible without a serial port.
+// PERM10 bring-up instrumentation: paint the boot splash framebuffer and hold
+// the colour so the last completed initialisation step stays on the panel.
 // Colours are documented in Platforms/OPPO/perm10Pkg/README.md.
 //
 STATIC
@@ -105,6 +107,7 @@ Perm10Trace (
   UINT32                       *Pixels;
   UINTN                         Count;
   UINTN                         Index;
+  volatile UINTN                Spin;
 
   Region.Address = 0;
   Region.Length  = 0;
@@ -122,6 +125,11 @@ Perm10Trace (
 
   for (Index = 0; Index < Count; Index++) {
     Pixels[Index] = Colour;
+  }
+
+  // Roughly a few hundred milliseconds at 1-2 GHz; only needs to be visible.
+  for (Spin = 0; Spin < 20000000; Spin++) {
+    __asm__ __volatile__ ("nop");
   }
 }
 #else
@@ -200,6 +208,10 @@ SecMain (VOID)
   if (EFI_ERROR (Status)) {
     DEBUG ((EFI_D_ERROR, "Failed to Load DXE Core! Status = %r\n", Status));
   }
+
+#ifdef PERM10_SEC_TRACE
+  Perm10Trace (0x00FFFFFF); // white: DXE core queued
+#endif
 }
 
 VOID
