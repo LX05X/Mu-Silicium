@@ -1,6 +1,6 @@
 # OPPO K10 Vitality / PERM10 Mu-Silicium port
 
-Status: target-specific PEI/device configuration and audit tooling. It is not yet a buildable or flashable image.
+Status: builds on CI (DEBUG_CLANGPDB AARCH64), 48 images verified. Not flashed or booted; no display, storage, USB or ACPI support yet.
 
 ## Verified target
 
@@ -46,6 +46,19 @@ The XBL config's `TZApps Reserved` interval `0xC1800000 + 0x03900000` ends exact
 ## Hardware inventory
 
 `extract_hw_inventory.py` reads the extracted runtime device tree and writes `Resources/perm10-hardware-inventory.md`: 70 nodes, 32 enabled. Confirmed peripherals include UFS at `0x1d84000` (SPI 265), USB3 `ssusb@a600000`, SPMI arbiter `0xc440000`, GICv3 `0x17a00000` with redistributors `0x17a60000`, PDC `0xb220000`, RSC `0x18200000`/`0xaf20000`, and the PMIC set **PM7325, PM7325B, PM8350C, PMK8350, PMR735A**. Bus-attached devices include a Novatek `NVT-ts` touch controller on `i2c@a94000`, `rtc6226` NFC on `i2c@984000`, four `pm8008` camera PMICs, and a single `gpio_keys/vol_up` node. This inventory is the basis for the ACPI work; it is not yet turned into tables.
+
+## CI build result
+
+`LX05X/Mu-Silicium` branch `perm10` builds successfully:
+
+```text
+run 45015131009  Offline audits 10s    EDK2 DEBUG build 3m33s
+PROGRESS - Success    0048 Images Verified
+SILICIUM_UEFI.fd = 0x300000 bytes
+sha256 da19ca3fc0b76effaaf616c54343ba2417bdfc9f670461b9296991ecd505ad61
+```
+
+The FD size equals the XBL `UEFI FD` reservation, and the workflow now fails if it ever differs. CI also uploads the raw `Mu-perm10-*.bin` payload.
 
 ## CI build on GitHub Actions
 

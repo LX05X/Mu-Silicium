@@ -1,26 +1,32 @@
-diff --git a/Resources/Configs/perm10.toml b/Resources/Configs/perm10.toml
-index a4d9b4d..b68b7a3 100644
---- a/Resources/Configs/perm10.toml
-+++ b/Resources/Configs/perm10.toml
-@@ -16,15 +16,10 @@ base = 0x9FC00000
- size = 0x300000
+diff --git a/Platforms/OPPO/perm10Pkg/README.md b/Platforms/OPPO/perm10Pkg/README.md
+index ad07c4b..ddf2193 100644
+--- a/Platforms/OPPO/perm10Pkg/README.md
++++ b/Platforms/OPPO/perm10Pkg/README.md
+@@ -1,6 +1,6 @@
+ # OPPO K10 Vitality / PERM10 Mu-Silicium port
  
- #
--# Android Boot Image Kernel Configs
-+# Payload Configs
-+# A raw payload is emitted instead of an Android boot image: no BootShim has
-+# been validated for PERM10, and an Android boot image would additionally
-+# require a Resources/DTBs/perm10.dtb that does not exist yet.
- #
--[boot_image_kernel]
--kernel_compression = "gzip"
--append_dtb         = true
--
--#
--# Android Boot Image Configs
--# The captured 605 boot.img declares header_version 3.
--#
--[boot_image]
--header_version = 3
-+[payload]
-+type = "raw"
+-Status: target-specific PEI/device configuration and audit tooling. It is not yet a buildable or flashable image.
++Status: builds on CI (DEBUG_CLANGPDB AARCH64), 48 images verified. Not flashed or booted; no display, storage, USB or ACPI support yet.
+ 
+ ## Verified target
+ 
+@@ -47,6 +47,19 @@ The XBL config's `TZApps Reserved` interval `0xC1800000 + 0x03900000` ends exact
+ 
+ `extract_hw_inventory.py` reads the extracted runtime device tree and writes `Resources/perm10-hardware-inventory.md`: 70 nodes, 32 enabled. Confirmed peripherals include UFS at `0x1d84000` (SPI 265), USB3 `ssusb@a600000`, SPMI arbiter `0xc440000`, GICv3 `0x17a00000` with redistributors `0x17a60000`, PDC `0xb220000`, RSC `0x18200000`/`0xaf20000`, and the PMIC set **PM7325, PM7325B, PM8350C, PMK8350, PMR735A**. Bus-attached devices include a Novatek `NVT-ts` touch controller on `i2c@a94000`, `rtc6226` NFC on `i2c@984000`, four `pm8008` camera PMICs, and a single `gpio_keys/vol_up` node. This inventory is the basis for the ACPI work; it is not yet turned into tables.
+ 
++## CI build result
++
++`LX05X/Mu-Silicium` branch `perm10` builds successfully:
++
++```text
++run 45015131009  Offline audits 10s    EDK2 DEBUG build 3m33s
++PROGRESS - Success    0048 Images Verified
++SILICIUM_UEFI.fd = 0x300000 bytes
++sha256 da19ca3fc0b76effaaf616c54343ba2417bdfc9f670461b9296991ecd505ad61
++```
++
++The FD size equals the XBL `UEFI FD` reservation, and the workflow now fails if it ever differs. CI also uploads the raw `Mu-perm10-*.bin` payload.
++
+ ## CI build on GitHub Actions
+ 
+ `.github/workflows/perm10-build.yml` builds the package on an x86_64 runner, where Mu's prebuilt tool dependencies exist:
