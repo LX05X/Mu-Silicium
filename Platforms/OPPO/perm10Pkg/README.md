@@ -67,6 +67,41 @@ Booting a distribution from here means loading this DTB next to the kernel
 set below for display, storage and USB; without those there is nothing to boot
 from.
 
+## Linux device tree
+
+`Resources/DTBs/perm10-linux.dts` is the tree a distribution should be booted
+with. It is derived from the working OPPO Reno7 (PFJM10) tree, which uses the
+same SM7325 SoC and a mainline-style description (`qcom,sc7280-*` compatibles),
+with the board specifics re-derived from the PERM10 capture:
+
+| Item | Value | Source |
+|---|---|---|
+| touch | Novatek `NVT-ts` at `i2c@a94000`, addr `0x62`, IRQ TLMM 81, reset TLMM 105 | `perm10.dtb` |
+| panel | `mdss,oplus21075-ds-ili7807s-1080-2412-vid`, reset TLMM 44, TE TLMM 80 | `perm10.dtb` |
+| key | Volume Down on PM7325 GPIO 6, `KEY_VOLUMEDOWN` | `perm10.dtb` |
+| ramoops | `0xE9700000 + 0x5B8000` | runtime FDT |
+
+`check_linux_dts.py` re-checks those facts against the compiled
+`perm10-linux.dtb` in CI. The tree compiles with `dtc` (148,089 bytes, no
+errors).
+
+Known gaps: no kernel panel driver exists for the ILI7807S, so display is
+expected to remain dark; the tree still carries the Reno7 reserved-memory
+layout and needs review once storage or firmware services are exercised.
+
+The Reno7 package also showed the working boot recipe, which this port copies:
+
+```grub
+linux /install.a64/vmlinuz earlycon console=tty0 ignore_loglevel \
+      clk_ignore_unused root=/dev/sda15 rootfstype=ext4 rw
+devicetree /install.a64/dtb
+```
+
+That is: root filesystem on USB storage, serial console at 115200, and the
+device tree passed explicitly. Its `/memory` node is a zero placeholder, so the
+kernel takes RAM from the UEFI memory map, which makes RamManagerDxe mandatory
+for a Linux boot as well.
+
 ## Hardware inventory
 
 `extract_hw_inventory.py` reads the extracted runtime device tree and writes `Resources/perm10-hardware-inventory.md`: 70 nodes, 32 enabled. Confirmed peripherals include UFS at `0x1d84000` (SPI 265), USB3 `ssusb@a600000`, SPMI arbiter `0xc440000`, GICv3 `0x17a00000` with redistributors `0x17a60000`, PDC `0xb220000`, RSC `0x18200000`/`0xaf20000`, and the PMIC set **PM7325, PM7325B, PM8350C, PMK8350, PMR735A**. Bus-attached devices include a Novatek `NVT-ts` touch controller on `i2c@a94000`, `rtc6226` NFC on `i2c@984000`, four `pm8008` camera PMICs, and a single `gpio_keys/vol_up` node. This inventory is the basis for the ACPI work; it is not yet turned into tables.

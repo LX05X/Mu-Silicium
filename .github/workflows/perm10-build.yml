@@ -45,6 +45,7 @@ jobs:
           python Platforms/OPPO/perm10Pkg/audit_donor_pil.py \
             Platforms/OPPO/perm10Pkg/Resources/Reference/spacewar-uefipil.cfg
           python Platforms/OPPO/perm10Pkg/extract_dtb.py --verify Resources/DTBs/perm10.dtb
+          python Platforms/OPPO/perm10Pkg/check_linux_dts.py
           python Platforms/OPPO/perm10Pkg/audit_build_refs.py
 
   build:
