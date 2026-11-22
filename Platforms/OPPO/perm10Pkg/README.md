@@ -43,6 +43,30 @@ The generator corrected three inherited donor values: `InitialPagePoolCount` `0x
 
 The XBL config's `TZApps Reserved` interval `0xC1800000 + 0x03900000` ends exactly at `0xC5100000`, the end of the runtime `removed_region@c0000000` reservation, so the two views agree.
 
+## Device tree for Linux
+
+The goal on this device is a Linux distribution, so the boot payload is paired
+with a real device tree instead of ACPI tables. `Resources/DTBs/perm10.dtb` is
+generated from the captured firmware by `extract_dtb.py`, which performs the
+same two steps the Android bootloader performs at runtime:
+
+1. select the base DTB from `vendor_boot.img` whose project list contains
+   `21075` and `22831` (entry 5 of 7);
+2. apply DTBO overlay 4, which adds the `oplus21075_ds_ili7807s` panel and the
+   Walle board nodes;
+3. fill `/memory` with the three runtime banks, because the base DTB ships a
+   zero placeholder.
+
+`extract_dtb.py --verify Resources/DTBs/perm10.dtb` checks the project list, the
+three banks (11.864 GiB), and that the ILI7807S panel node is present; CI runs it
+on every push. The merged and patched tree has 3643 nodes versus 3500 in the base
+DTB.
+
+Booting a distribution from here means loading this DTB next to the kernel
+(for example `devicetree` in GRUB). UEFI itself still needs the Qualcomm DXE
+set below for display, storage and USB; without those there is nothing to boot
+from.
+
 ## Hardware inventory
 
 `extract_hw_inventory.py` reads the extracted runtime device tree and writes `Resources/perm10-hardware-inventory.md`: 70 nodes, 32 enabled. Confirmed peripherals include UFS at `0x1d84000` (SPI 265), USB3 `ssusb@a600000`, SPMI arbiter `0xc440000`, GICv3 `0x17a00000` with redistributors `0x17a60000`, PDC `0xb220000`, RSC `0x18200000`/`0xaf20000`, and the PMIC set **PM7325, PM7325B, PM8350C, PMK8350, PMR735A**. Bus-attached devices include a Novatek `NVT-ts` touch controller on `i2c@a94000`, `rtc6226` NFC on `i2c@984000`, four `pm8008` camera PMICs, and a single `gpio_keys/vol_up` node. This inventory is the basis for the ACPI work; it is not yet turned into tables.
