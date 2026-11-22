@@ -102,9 +102,20 @@ jobs:
       - name: Collect outputs
         if: always()
         run: |
+          set -euo pipefail
           mkdir -p artifact
           cp -v build-perm10.log artifact/ || true
-          find Build -maxdepth 4 \( -name '*.fd' -o -name '*.img' -o -name '*.elf' \) 2>/dev/null | head -50 || true
+          cp -v Mu-perm10*.bin artifact/ || true
+          if [ -f Build/perm10Pkg/DEBUG_CLANGPDB/FV/SILICIUM_UEFI.fd ]; then
+            fd=Build/perm10Pkg/DEBUG_CLANGPDB/FV/SILICIUM_UEFI.fd
+            size=$(stat -c %s "$fd")
+            sha256sum "$fd" | tee artifact/SILICIUM_UEFI.fd.sha256
+            echo "FD size: $size bytes"
+            if [ "$size" -ne $((0x300000)) ]; then
+              echo "::error::FD size $size does not match the PERM10 UEFI FD reservation (0x300000)"
+              exit 1
+            fi
+          fi
           if [ -d Build ]; then tar -czf artifact/perm10-build.tar.gz Build; fi
 
       - uses: actions/upload-artifact@v4
