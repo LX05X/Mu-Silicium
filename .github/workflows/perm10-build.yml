@@ -1,0 +1,116 @@
+name: Build PERM10 UEFI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - perm10
+  pull_request:
+    paths:
+      - 'Platforms/OPPO/perm10Pkg/**'
+      - 'Resources/Configs/perm10.toml'
+      - '.github/workflows/perm10-build.yml'
+      - 'ci/**'
+
+concurrency:
+  group: perm10-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Offline audits
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Apply port patch when the package is not committed
+        run: |
+          if [ ! -d Platforms/OPPO/perm10Pkg ]; then
+            git apply --verbose ci/perm10-port.patch
+          fi
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Static audits that need no capture
+        run: |
+          set -euo pipefail
+          python -m py_compile Platforms/OPPO/perm10Pkg/*.py
+          python Platforms/OPPO/perm10Pkg/generate_memory_map.py
+          python Platforms/OPPO/perm10Pkg/generate_configuration_map.py
+          git diff --exit-code -- Platforms/OPPO/perm10Pkg/Library
+          python Platforms/OPPO/perm10Pkg/audit_donor_pil.py \
+            Platforms/OPPO/perm10Pkg/Resources/Reference/spacewar-uefipil.cfg
+          python Platforms/OPPO/perm10Pkg/audit_build_refs.py
+
+  build:
+    name: EDK2 DEBUG build
+    runs-on: ubuntu-22.04
+    needs: audit
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Apply port patch when the package is not committed
+        run: |
+          if [ ! -d Platforms/OPPO/perm10Pkg ]; then
+            git apply --verbose ci/perm10-port.patch
+          fi
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential uuid-dev nasm acpica-tools device-tree-compiler \
+            clang lld llvm gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu \
+            git python3-dev
+
+      - name: Fetch submodules
+        run: |
+          set -euo pipefail
+          git submodule update --init --recursive --depth 1 -- \
+            Binaries Common/Mu Common/Mu_OEM_Sample Mu_Basecore \
+            Silicon/Silicium/OpensslPkg/Library/OpensslLib/openssl
+          # Mu-Silicium pins a Silicium-ACPI commit that upstream has dropped
+          # (6d549329). ACPI is disabled in perm10Pkg, so main is acceptable.
+          if ! git submodule update --init --depth 1 Silicium-ACPI; then
+            git -C Silicium-ACPI fetch --depth 1 origin main
+            git -C Silicium-ACPI checkout FETCH_HEAD
+          fi
+
+      - name: Verify build references against fetched modules
+        run: python Platforms/OPPO/perm10Pkg/audit_build_refs.py --require
+
+      - name: Install Python requirements
+        run: python -m pip install --upgrade pip && python -m pip install -r pip-requirements.txt
+
+      - name: Build perm10 DEBUG
+        run: |
+          set -o pipefail
+          python build_uefi.py -d perm10 -r DEBUG 2>&1 | tee build-perm10.log
+
+      - name: Collect outputs
+        if: always()
+        run: |
+          mkdir -p artifact
+          cp -v build-perm10.log artifact/ || true
+          find Build -maxdepth 4 \( -name '*.fd' -o -name '*.img' -o -name '*.elf' \) 2>/dev/null | head -50 || true
+          if [ -d Build ]; then tar -czf artifact/perm10-build.tar.gz Build; fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: perm10-debug-${{ github.run_number }}
+          path: artifact
+          if-no-files-found: warn
+          retention-days: 14
