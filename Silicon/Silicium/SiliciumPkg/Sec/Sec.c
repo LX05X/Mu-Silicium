@@ -122,9 +122,6 @@ Perm10Trace (
 
   Pixels = (UINT32 *)(UINTN)Region.Address;
   Count  = Region.Length / sizeof (UINT32);
-  if (Count > (16u * 1024 * 1024 / sizeof (UINT32))) {
-    Count = 16u * 1024 * 1024 / sizeof (UINT32);
-  }
 
   for (Index = 0; Index < Count; Index++) {
     Pixels[Index] = Colour;
