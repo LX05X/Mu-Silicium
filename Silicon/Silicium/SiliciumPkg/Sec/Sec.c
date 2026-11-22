@@ -19,6 +19,7 @@
 #include "Sec.h"
 
 #ifndef MDEPKG_NDEBUG
+#ifndef PERM10_SEC_TRACE
 STATIC
 VOID
 ClearFrameBuffer (VOID)
@@ -34,6 +35,8 @@ ClearFrameBuffer (VOID)
     ZeroMem ((VOID *)FrameBufferRegion.Address, FrameBufferRegion.Length);
   }
 }
+
+#endif
 
 STATIC
 VOID
