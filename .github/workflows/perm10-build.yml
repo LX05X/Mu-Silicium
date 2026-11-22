@@ -2,6 +2,12 @@ name: Build PERM10 UEFI
 
 on:
   workflow_dispatch:
+    inputs:
+      build_mode:
+        description: 'EDK2 build target'
+        type: choice
+        options: [DEBUG, RELEASE]
+        default: DEBUG
   push:
     branches:
       - perm10
@@ -15,6 +21,9 @@ on:
 concurrency:
   group: perm10-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  BUILD_MODE: ${{ inputs.build_mode || 'DEBUG' }}
 
 jobs:
   audit:
@@ -49,7 +58,7 @@ jobs:
           python Platforms/OPPO/perm10Pkg/audit_build_refs.py
 
   build:
-    name: EDK2 DEBUG build
+    name: EDK2 build
     runs-on: ubuntu-22.04
     needs: audit
     timeout-minutes: 120
@@ -96,10 +105,11 @@ jobs:
       - name: Install Python requirements
         run: python -m pip install --upgrade pip && python -m pip install -r pip-requirements.txt
 
-      - name: Build perm10 DEBUG
+      - name: Build perm10
         run: |
           set -o pipefail
-          python build_uefi.py -d perm10 -r DEBUG 2>&1 | tee build-perm10.log
+          echo "build mode: $BUILD_MODE"
+          python build_uefi.py -d perm10 -r "$BUILD_MODE" 2>&1 | tee build-perm10.log
 
       - name: Collect outputs
         if: always()
@@ -132,7 +142,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: perm10-image-${{ github.run_number }}
+          name: perm10-image-${{ env.BUILD_MODE }}-${{ github.run_number }}
           path: artifact/image
           if-no-files-found: warn
           retention-days: 30
@@ -141,7 +151,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: perm10-tree-${{ github.run_number }}
+          name: perm10-tree-${{ env.BUILD_MODE }}-${{ github.run_number }}
           path: artifact/tree
           if-no-files-found: warn
           retention-days: 7
