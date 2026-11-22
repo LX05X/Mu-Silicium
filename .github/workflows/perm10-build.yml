@@ -143,8 +143,10 @@ jobs:
             size=$(stat -c %s "$fd")
             sha256sum "$fd" | tee artifact/image/SILICIUM_UEFI.fd.sha256
             echo "FD size: $size bytes"
-            if [ "$size" -ne $((0x300000)) ]; then
-              echo "::error::FD size $size does not match the PERM10 UEFI FD reservation (0x300000)"
+            configured=$(sed -n '/^\[uefi_fd\]/,/^$/s/^size = //p' Resources/Configs/perm10.toml)
+            expected=$((configured))
+            if [ "$size" -ne "$expected" ]; then
+              echo "::error::FD size $size does not match the configured FD size $configured"
               exit 1
             fi
             cp -v "$fd" artifact/image/
