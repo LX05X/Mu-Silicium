@@ -94,7 +94,8 @@ def main():
         if missing:
             print(f"not included (intentional for some): {', '.join(missing)}")
         required = [name.strip() for name in args.require.split(",") if name.strip()]
-        absent = [name for name in required if name in missing or name not in expected]
+        known = set(expected.values())
+        absent = [name for name in required if name not in known or name in missing]
         if absent:
             raise SystemExit(f"required drivers missing from the payload: {', '.join(absent)}")
         print(f"required drivers present: {', '.join(required)}")
