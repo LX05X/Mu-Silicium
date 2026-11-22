@@ -16,15 +16,10 @@ base = 0x9FC00000
 size = 0x300000
 
 #
-# Android Boot Image Kernel Configs
+# Payload Configs
+# A raw payload is emitted instead of an Android boot image: no BootShim has
+# been validated for PERM10, and an Android boot image would additionally
+# require a Resources/DTBs/perm10.dtb that does not exist yet.
 #
-[boot_image_kernel]
-kernel_compression = "gzip"
-append_dtb         = true
-
-#
-# Android Boot Image Configs
-# The captured 605 boot.img declares header_version 3.
-#
-[boot_image]
-header_version = 3
+[payload]
+type = "raw"
