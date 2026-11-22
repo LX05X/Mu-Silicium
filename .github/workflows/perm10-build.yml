@@ -8,6 +8,12 @@ on:
         type: choice
         options: [DEBUG, RELEASE]
         default: DEBUG
+      fd_base:
+        description: 'Override uefi_fd.base, e.g. 0x9FC41000 (empty = use perm10.toml)'
+        default: ''
+      fd_size:
+        description: 'Override uefi_fd.size, e.g. 0x2BF000 (empty = use perm10.toml)'
+        default: ''
   push:
     branches:
       - perm10
@@ -77,6 +83,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
+      - name: Apply FD placement override
+        if: inputs.fd_base != '' && inputs.fd_size != ''
+        run: |
+          sed -i "s|^base = .*|base = ${{ inputs.fd_base }}|" Resources/Configs/perm10.toml
+          sed -i "s|^size = .*|size = ${{ inputs.fd_size }}|" Resources/Configs/perm10.toml
+          grep -A2 '^\[uefi_fd\]' Resources/Configs/perm10.toml
 
       - name: Install build dependencies
         run: |
