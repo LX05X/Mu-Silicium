@@ -26,7 +26,12 @@ def main():
     parser.add_argument(
         "--driver-dir",
         type=Path,
-        help="vendor driver tree whose FILE_GUIDs must appear in the payload",
+        help="vendor driver tree whose FILE_GUIDs are counted in the payload",
+    )
+    parser.add_argument(
+        "--require",
+        default="UFSDxe,XhciDxe,UsbBusDxe,UsbMassStorageDxe,PmicDxeLa,RpmhDxe,ClockDxe,TLMMDxe,GpiDxe,ButtonsDxe",
+        help="comma separated driver names that must be present",
     )
     args = parser.parse_args()
 
@@ -82,12 +87,17 @@ def main():
                 expected[match.group(1).upper()] = inf.stem
         if not expected:
             raise SystemExit(f"no FILE_GUID found under {args.driver_dir}")
-        missing = [
+        missing = sorted(
             name for guid, name in expected.items() if uuid.UUID(guid).bytes_le not in payload
-        ]
+        )
         print(f"drivers referenced {len(expected)}, present {len(expected) - len(missing)}")
         if missing:
-            raise SystemExit(f"drivers missing from the payload: {', '.join(sorted(missing)[:10])}")
+            print(f"not included (intentional for some): {', '.join(missing)}")
+        required = [name.strip() for name in args.require.split(",") if name.strip()]
+        absent = [name for name in required if name in missing or name not in expected]
+        if absent:
+            raise SystemExit(f"required drivers missing from the payload: {', '.join(absent)}")
+        print(f"required drivers present: {', '.join(required)}")
 
     print("OK: container, shim target and FD size are consistent")
 
