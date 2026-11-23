@@ -37,4 +37,4 @@ append_dtb         = false
 # Header version 0 matches the Reno7 package that boots on this SoC family.
 #
 [boot_image]
-header_version = 0
+header_version = 3

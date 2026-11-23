@@ -14,6 +14,9 @@ on:
       fd_size:
         description: 'Override uefi_fd.size, e.g. 0x2BF000 (empty = use perm10.toml)'
         default: ''
+      header_version:
+        description: 'Android boot header version override (empty = use perm10.toml)'
+        default: ''
       halt_level:
         description: 'SEC halt stage: 0 off, 1 entry, 2 after memory, 3 after PlatformPeim, 4 after FV'
         default: '0'
@@ -93,6 +96,13 @@ jobs:
           sed -i "s|^base = .*|base = ${{ inputs.fd_base }}|" Resources/Configs/perm10.toml
           sed -i "s|^size = .*|size = ${{ inputs.fd_size }}|" Resources/Configs/perm10.toml
           grep -A2 '^\[uefi_fd\]' Resources/Configs/perm10.toml
+
+      - name: Apply boot header override
+        if: inputs.header_version != ''
+        run: |
+          sed -i "s|^header_version = .*|header_version = ${{ inputs.header_version }}|" \
+            Resources/Configs/perm10.toml
+          grep -n 'header_version' Resources/Configs/perm10.toml
 
       - name: Apply SEC halt level
         if: inputs.halt_level != ''
