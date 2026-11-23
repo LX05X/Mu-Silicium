@@ -8,6 +8,13 @@
 
 #include "Sec.h"
 
+#ifdef PERM10_SEC_TRACE
+VOID
+Perm10PanicPaint (
+  IN UINT64  Value
+  );
+#endif
+
 VOID
 SecCommonExceptionEntry (
   IN UINT32 Type,
@@ -15,6 +22,13 @@ SecCommonExceptionEntry (
 {
   CHAR8 Buffer[100];
   UINTN CharCount;
+
+#ifdef PERM10_SEC_TRACE
+  Perm10PanicPaint ((UINT64)LR);
+  for ( ; ; ) {
+    __asm__ __volatile__ ("wfi");
+  }
+#endif
 
   // Set Exception Message
   switch (Type) {

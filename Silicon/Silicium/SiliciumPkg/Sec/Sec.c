@@ -116,6 +116,109 @@ InitializeMemory (VOID)
 }
 
 
+
+#ifdef PERM10_SEC_TRACE
+//
+// Draw a 64-bit value as sixteen hex digits on the splash framebuffer using a
+// 5x7 font, so an exception address can be photographed without a serial port.
+//
+STATIC CONST UINT8  mPerm10Font[16][7] = {
+  { 0x1F, 0x11, 0x11, 0x11, 0x11, 0x11, 0x1F }, // 0
+  { 0x04, 0x0C, 0x04, 0x04, 0x04, 0x04, 0x0E }, // 1
+  { 0x1F, 0x01, 0x01, 0x1F, 0x10, 0x10, 0x1F }, // 2
+  { 0x1F, 0x01, 0x01, 0x0F, 0x01, 0x01, 0x1F }, // 3
+  { 0x11, 0x11, 0x11, 0x1F, 0x01, 0x01, 0x01 }, // 4
+  { 0x1F, 0x10, 0x10, 0x1F, 0x01, 0x01, 0x1F }, // 5
+  { 0x1F, 0x10, 0x10, 0x1F, 0x11, 0x11, 0x1F }, // 6
+  { 0x1F, 0x01, 0x01, 0x02, 0x04, 0x04, 0x04 }, // 7
+  { 0x1F, 0x11, 0x11, 0x1F, 0x11, 0x11, 0x1F }, // 8
+  { 0x1F, 0x11, 0x11, 0x1F, 0x01, 0x01, 0x1F }, // 9
+  { 0x0E, 0x11, 0x11, 0x1F, 0x11, 0x11, 0x11 }, // A
+  { 0x1E, 0x11, 0x11, 0x1E, 0x11, 0x11, 0x1E }, // B
+  { 0x0F, 0x10, 0x10, 0x10, 0x10, 0x10, 0x0F }, // C
+  { 0x1E, 0x11, 0x11, 0x11, 0x11, 0x11, 0x1E }, // D
+  { 0x1F, 0x10, 0x10, 0x1E, 0x10, 0x10, 0x1F }, // E
+  { 0x1F, 0x10, 0x10, 0x1E, 0x10, 0x10, 0x10 }, // F
+};
+
+STATIC
+VOID
+Perm10DrawGlyph (
+  IN UINT32  *Pixels,
+  IN UINTN    Stride,
+  IN UINTN    X,
+  IN UINTN    Y,
+  IN UINTN    Scale,
+  IN UINT32  Colour,
+  IN UINT8    Digit
+  )
+{
+  UINTN  Row;
+  UINTN  Column;
+  UINTN  Dy;
+  UINTN  Dx;
+
+  for (Row = 0; Row < 7; Row++) {
+    for (Column = 0; Column < 5; Column++) {
+      if ((mPerm10Font[Digit][Row] & (0x10 >> Column)) == 0) {
+        continue;
+      }
+
+      for (Dy = 0; Dy < Scale; Dy++) {
+        for (Dx = 0; Dx < Scale; Dx++) {
+          Pixels[(Y + Row * Scale + Dy) * Stride + X + Column * Scale + Dx] = Colour;
+        }
+      }
+    }
+  }
+}
+
+VOID
+Perm10PanicPaint (
+  IN UINT64  Value
+  )
+{
+  EFI_MEMORY_REGION_DESCRIPTOR  Region;
+  UINT32                       *Pixels;
+  UINTN                         Stride;
+  UINTN                         Index;
+  UINTN                         Row;
+  UINTN                         Digit;
+
+  Region.Address = 0;
+  Region.Length  = 0;
+  LocateMemoryRegionByName ("Display Reserved", &Region);
+  LocateMemoryRegionByName ("Display_Reserved", &Region);
+  if ((Region.Address == 0) || (Region.Length < (1200u * 1000u * 4u))) {
+    return;
+  }
+
+  Pixels = (UINT32 *)(UINTN)Region.Address;
+  Stride = 1080;
+
+  // Black background.
+  for (Index = 0; Index < Stride * 1000; Index++) {
+    Pixels[Index] = 0x00000000;
+  }
+
+  // Two rows of eight hex digits: high half above low half.
+  for (Row = 0; Row < 2; Row++) {
+    for (Digit = 0; Digit < 8; Digit++) {
+      UINT8 Nibble = (UINT8)((Value >> ((1 - Row) * 32 + (7 - Digit) * 4)) & 0xF);
+      Perm10DrawGlyph (
+        Pixels,
+        Stride,
+        40 + Digit * 130,
+        120 + Row * 380,
+        20,
+        Row == 0 ? 0x00FFFFFF : 0x0000FFFF,
+        Nibble
+        );
+    }
+  }
+}
+#endif
+
 #ifdef PERM10_SEC_TRACE
 //
 // PERM10 bring-up instrumentation: paint the boot splash framebuffer and hold
