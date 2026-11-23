@@ -38,18 +38,30 @@ def main():
     blob = args.image.read_bytes()
     if blob[:8] != b"ANDROID!":
         raise SystemExit("not an Android boot image")
-    kernel_size = struct.unpack_from("<I", blob, 8)[0]
-    kernel_addr = struct.unpack_from("<I", blob, 12)[0]
-    ramdisk_size = struct.unpack_from("<I", blob, 16)[0]
-    ramdisk_addr = struct.unpack_from("<I", blob, 20)[0]
-    page_size = struct.unpack_from("<I", blob, 36)[0]
-    if page_size & (page_size - 1) or page_size < 0x800:
-        raise SystemExit(f"implausible page size {page_size:#x}")
-    header_version = struct.unpack_from("<I", blob, 40)[0] if len(blob) > 44 else 0
-    print(
-        f"header v{header_version}, page {page_size:#x}, "
-        f"kernel {kernel_size:#x}@{kernel_addr:#x}, ramdisk {ramdisk_size:#x}@{ramdisk_addr:#x}"
-    )
+
+    header_version = struct.unpack_from("<I", blob, 40)[0]
+    if header_version == 3:
+        # boot_img_hdr_v3: no load addresses, page size is fixed at 4096.
+        kernel_size = struct.unpack_from("<I", blob, 8)[0]
+        ramdisk_size = struct.unpack_from("<I", blob, 12)[0]
+        header_size = struct.unpack_from("<I", blob, 20)[0]
+        page_size = 4096
+        print(
+            f"header v3, header size {header_size:#x}, page {page_size:#x}, "
+            f"kernel {kernel_size:#x}, ramdisk {ramdisk_size:#x}"
+        )
+    else:
+        kernel_size = struct.unpack_from("<I", blob, 8)[0]
+        kernel_addr = struct.unpack_from("<I", blob, 12)[0]
+        ramdisk_size = struct.unpack_from("<I", blob, 16)[0]
+        ramdisk_addr = struct.unpack_from("<I", blob, 20)[0]
+        page_size = struct.unpack_from("<I", blob, 36)[0]
+        if page_size & (page_size - 1) or page_size < 0x800:
+            raise SystemExit(f"implausible page size {page_size:#x}")
+        print(
+            f"header v{header_version}, page {page_size:#x}, "
+            f"kernel {kernel_size:#x}@{kernel_addr:#x}, ramdisk {ramdisk_size:#x}@{ramdisk_addr:#x}"
+        )
 
     kernel = blob[page_size : page_size + kernel_size]
     if kernel[:2] != b"\x1f\x8b":
