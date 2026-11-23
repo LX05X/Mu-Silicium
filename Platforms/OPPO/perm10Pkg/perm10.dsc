@@ -39,3 +39,6 @@
 
 [Components]
   # ACPI disabled until a PERM10 DSDT/SSDT is generated and validated.
+
+  # Bring-up beacon, paints the framebuffer when DXE starts dispatching.
+  perm10Pkg/Drivers/TraceDxe/TraceDxe.inf
