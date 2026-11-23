@@ -11,6 +11,9 @@ APRIORI DXE {
   INF MdeModulePkg/Core/Dxe/DxeMain.inf
   INF MdeModulePkg/Universal/PCD/Dxe/Pcd.inf
 
+  # PERM10 bring-up beacon: paints the framebuffer when DXE starts dispatching.
+  INF perm10Pkg/Drivers/TraceDxe/TraceDxe.inf
+
   INF Binaries/spacewar/QcomPkg/Drivers/EnvDxe/EnvDxe.inf
 
   INF MdeModulePkg/Universal/ReportStatusCodeRouter/RuntimeDxe/ReportStatusCodeRouterRuntimeDxe.inf
