@@ -18,6 +18,28 @@
 
 #include "Sec.h"
 
+
+#ifndef PERM10_HALT_LEVEL
+#define PERM10_HALT_LEVEL 0
+#endif
+
+//
+// PERM10 bring-up: stop dead at a chosen stage so the device either reboots
+// (never reached the stage) or stays black forever (reached it).
+//
+STATIC
+VOID
+Perm10Halt (
+  IN UINTN  Level
+  )
+{
+  if (Level == PERM10_HALT_LEVEL) {
+    for ( ; ; ) {
+      __asm__ __volatile__ ("wfi");
+    }
+  }
+}
+
 #ifndef MDEPKG_NDEBUG
 #ifndef PERM10_SEC_TRACE
 STATIC
@@ -174,6 +196,7 @@ SecMain (VOID)
   }
 
   Perm10Trace (0x0000FF00); // green: memory init done
+  Perm10Halt (2);
 
   // Build CPU HOB
   BuildCpuHob (ArmGetPhysicalAddressBits (), PcdGet8 (PcdPrePiCpuIoSize));
@@ -189,6 +212,7 @@ SecMain (VOID)
   }
 
   Perm10Trace (0x000000FF); // blue: PlatformPeim done
+  Perm10Halt (3);
 
   // Run Library Cconstructors
   ProcessLibraryConstructorList ();
@@ -202,6 +226,7 @@ SecMain (VOID)
   }
 
   Perm10Trace (0x00FFFFFF); // white: FV decompressed
+  Perm10Halt (4);
 
   // Load DXE Core
   Status = LoadDxeCoreFromFv (NULL, 0);
@@ -217,6 +242,8 @@ SecMain (VOID)
 VOID
 SecEntry (VOID)
 {
+  Perm10Halt (1);
+
   // Disable Data Cache
   ArmDisableDataCache ();
 

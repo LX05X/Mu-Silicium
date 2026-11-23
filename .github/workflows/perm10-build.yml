@@ -14,6 +14,9 @@ on:
       fd_size:
         description: 'Override uefi_fd.size, e.g. 0x2BF000 (empty = use perm10.toml)'
         default: ''
+      halt_level:
+        description: 'SEC halt stage: 0 off, 1 entry, 2 after memory, 3 after PlatformPeim, 4 after FV'
+        default: '0'
   push:
     branches:
       - perm10
@@ -90,6 +93,13 @@ jobs:
           sed -i "s|^base = .*|base = ${{ inputs.fd_base }}|" Resources/Configs/perm10.toml
           sed -i "s|^size = .*|size = ${{ inputs.fd_size }}|" Resources/Configs/perm10.toml
           grep -A2 '^\[uefi_fd\]' Resources/Configs/perm10.toml
+
+      - name: Apply SEC halt level
+        if: inputs.halt_level != ''
+        run: |
+          sed -i "s|-DPERM10_HALT_LEVEL=[0-9]*|-DPERM10_HALT_LEVEL=${{ inputs.halt_level }}|" \
+            Platforms/OPPO/perm10Pkg/perm10.dsc
+          grep -n 'PERM10_HALT_LEVEL' Platforms/OPPO/perm10Pkg/perm10.dsc
 
       - name: Install build dependencies
         run: |

@@ -31,7 +31,7 @@
 
 [BuildOptions]
   # Enables the Perm10Trace framebuffer beacons in SiliciumPkg/Sec.
-  *_*_AARCH64_CC_FLAGS = -DPERM10_SEC_TRACE=1
+  *_*_AARCH64_CC_FLAGS = -DPERM10_SEC_TRACE=1 -DPERM10_HALT_LEVEL=0
 
 [LibraryClasses]
   MemoryMapLib|perm10Pkg/Library/MemoryMapLib/MemoryMapLib.inf
