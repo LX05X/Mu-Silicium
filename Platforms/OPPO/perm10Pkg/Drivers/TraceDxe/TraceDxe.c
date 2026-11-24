@@ -41,5 +41,11 @@ TraceDxeEntryPoint (
   )
 {
   Perm10Paint (0x00FF8000); // orange: DXE is dispatching
+
+  // Halt here: staying put proves DXE reached its dispatch stage.
+  for ( ; ; ) {
+    __asm__ __volatile__ ("wfi");
+  }
+
   return EFI_SUCCESS;
 }

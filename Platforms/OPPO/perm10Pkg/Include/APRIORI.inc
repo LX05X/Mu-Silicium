@@ -9,10 +9,10 @@
 ##
 APRIORI DXE {
   INF MdeModulePkg/Core/Dxe/DxeMain.inf
-  INF MdeModulePkg/Universal/PCD/Dxe/Pcd.inf
 
-  # PERM10 bring-up beacon: paints the framebuffer when DXE starts dispatching.
+  # PERM10 bring-up beacon: runs before every other DXE driver.
   INF perm10Pkg/Drivers/TraceDxe/TraceDxe.inf
+  INF MdeModulePkg/Universal/PCD/Dxe/Pcd.inf
 
   INF Binaries/spacewar/QcomPkg/Drivers/EnvDxe/EnvDxe.inf
 
