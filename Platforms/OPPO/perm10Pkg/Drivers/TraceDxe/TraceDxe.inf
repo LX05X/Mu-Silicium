@@ -13,10 +13,13 @@
   MdePkg/MdePkg.dec
   SiliciumPkg/SiliciumPkg.dec
   QcomPkg/QcomPkg.dec
+  ArmPkg/ArmPkg.dec
 
 [LibraryClasses]
   UefiDriverEntryPoint
   MemoryMapHelperLib
+  ArmSmcLib
+  BaseMemoryLib
 
 [Depex]
   TRUE
