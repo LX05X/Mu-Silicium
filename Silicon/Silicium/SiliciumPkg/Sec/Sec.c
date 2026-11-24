@@ -180,43 +180,40 @@ Perm10PanicPaint (
 {
   EFI_MEMORY_REGION_DESCRIPTOR  Region;
   UINT32                       *Pixels;
-  UINTN                         Stride;
+  UINTN                         Count;
   UINTN                         Index;
-  UINTN                         Row;
-  UINTN                         Digit;
+
+  // Stop further exceptions while we paint.
+  __asm__ __volatile__ ("msr daifset, #0xf");
 
   Region.Address = 0;
   Region.Length  = 0;
   LocateMemoryRegionByName ("Display Reserved", &Region);
   LocateMemoryRegionByName ("Display_Reserved", &Region);
-  if ((Region.Address == 0) || (Region.Length < (1200u * 1000u * 4u))) {
-    return;
+  if ((Region.Address == 0) || (Region.Length == 0)) {
+    for ( ; ; ) {
+      __asm__ __volatile__ ("wfi");
+    }
   }
 
   Pixels = (UINT32 *)(UINTN)Region.Address;
-  Stride = 1080;
-
-  // Black background.
-  for (Index = 0; Index < Stride * 1000; Index++) {
-    Pixels[Index] = 0x00000000;
+  Count  = Region.Length / sizeof (UINT32);
+  if (Count > (8u * 1024 * 1024 / sizeof (UINT32))) {
+    Count = 8u * 1024 * 1024 / sizeof (UINT32);
   }
 
-  // Two rows of eight hex digits: high half above low half.
-  for (Row = 0; Row < 2; Row++) {
-    for (Digit = 0; Digit < 8; Digit++) {
-      UINT8 Nibble = (UINT8)((Value >> ((1 - Row) * 32 + (7 - Digit) * 4)) & 0xF);
-      Perm10DrawGlyph (
-        Pixels,
-        Stride,
-        40 + Digit * 130,
-        120 + Row * 380,
-        20,
-        Row == 0 ? 0x00FFFFFF : 0x0000FFFF,
-        Nibble
-        );
-    }
+  // Solid magenta: "an exception reached the SEC handler".
+  for (Index = 0; Index < Count; Index++) {
+    Pixels[Index] = 0x00FF00FF;
+  }
+
+  (VOID)Value;
+
+  for ( ; ; ) {
+    __asm__ __volatile__ ("wfi");
   }
 }
+
 #endif
 
 #ifdef PERM10_SEC_TRACE
