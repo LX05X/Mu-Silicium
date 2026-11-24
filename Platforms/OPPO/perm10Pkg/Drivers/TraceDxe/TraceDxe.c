@@ -42,17 +42,6 @@ TraceDxeEntryPoint (
   IN EFI_SYSTEM_TABLE  *SystemTable
   )
 {
-  ARM_SMC_ARGS  Args;
-
   Perm10Paint (0x00FF8000); // orange: DXE is dispatching
-
-  //
-  // Ask PSCI to reset: if this driver is dispatched the device reboots within a
-  // second or two, which is measurable without a display.
-  //
-  ZeroMem (&Args, sizeof (Args));
-  Args.Arg0 = 0x84000009; // PSCI SYSTEM_RESET
-  ArmCallSmc (&Args);
-
   return EFI_SUCCESS;
 }
