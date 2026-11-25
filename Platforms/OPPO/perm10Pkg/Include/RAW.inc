@@ -1,3 +1,9 @@
+  # Platform configuration, embedded the way the working vendor image does it.
+  FILE FREEFORM = 21E9BDE0-6C3F-4F10-84A5-BBEC322741F2 {
+    SECTION RAW = perm10Pkg/Resources/uefiplatLA.cfg
+    SECTION UI = "uefiplat.cfg"
+  }
+
   FILE FREEFORM = A1E235DE-E825-4591-9623-C43175811826 {
     SECTION RAW = Binaries/spacewar/RawFiles/SecParti.cfg
     SECTION UI = "SecParti.cfg"
