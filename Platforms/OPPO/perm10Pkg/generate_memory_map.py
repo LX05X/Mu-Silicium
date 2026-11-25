@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Generate PERM10 MemoryMapLib from the target XBL's embedded uefiplatLA.cfg."""
 import hashlib
+import os
 import re
 from pathlib import Path
 
@@ -25,6 +26,19 @@ EXTRA = [
     (0xC0000000, 0x05100000, "PERM10 Removed Region", "AddMem", "MEM_RES", "UNCACHEABLE", "Reserv", "UNCACHED_UNBUFFERED_XN"),
     (0xE9700000, 0x005B8000, "PERM10 Ramoops", "AddMem", "MEM_RES", "SYS_MEM_CAP", "Reserv", "WRITE_BACK_XN"),
 ]
+
+
+def spacewar_rows():
+    """Emit the spacewar map verbatim, for A/B testing a known-good layout."""
+    ref = Path(__file__).resolve().parent.parent.parent.parent / "Platforms/Nothing/spacewarPkg/Library/MemoryMapLib/MemoryMapLib.c"
+    text = ref.read_text()
+    rows = []
+    for name, address, length, rest in re.findall(
+        r'\{\s*"([^"]+)"\s*,\s*(0x[0-9A-Fa-f]+)\s*,\s*(0x[0-9A-Fa-f]+)\s*,\s*([^}]+)\}', text
+    ):
+        parts = [part.strip() for part in rest.split(",")]
+        rows.append((int(address, 16), int(length, 16), name) + tuple(parts))
+    return rows
 
 
 def extract_rows():
@@ -65,7 +79,7 @@ def extract_rows():
 
 
 def generate():
-    rows = extract_rows()
+    rows = spacewar_rows() if os.environ.get("PERM10_MAP_SOURCE") == "spacewar" else extract_rows()
     output = [
         "#include <Library/MemoryMapLib.h>",
         "",

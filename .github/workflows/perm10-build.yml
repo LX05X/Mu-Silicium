@@ -35,6 +35,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  PERM10_MAP_SOURCE: spacewar
   BUILD_MODE: ${{ inputs.build_mode || 'DEBUG' }}
 
 jobs:
