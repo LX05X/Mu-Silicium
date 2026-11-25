@@ -42,6 +42,14 @@ TraceDxeEntryPoint (
   IN EFI_SYSTEM_TABLE  *SystemTable
   )
 {
-  Perm10Paint (0x00FF8000); // orange: DXE is dispatching
+  // Repaint forever: a steady orange screen proves DXE reached its dispatch
+  // stage even though the console may clear the framebuffer later.
+  for ( ; ; ) {
+    Perm10Paint (0x00FF8000);
+    for (volatile UINTN spin = 0; spin < 4000000; spin++) {
+      __asm__ __volatile__ ("nop");
+    }
+  }
+
   return EFI_SUCCESS;
 }
