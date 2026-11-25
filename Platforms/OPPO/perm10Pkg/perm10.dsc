@@ -8,7 +8,7 @@
   BUILD_TARGETS                  = RELEASE|DEBUG
   SKUID_IDENTIFIER               = DEFAULT
   FLASH_DEFINITION               = perm10Pkg/perm10.fdf
-  USE_CUSTOM_DISPLAY_DRIVER      = 0
+  USE_CUSTOM_DISPLAY_DRIVER      = 1
   SOC_TYPE                       = 0
 
 !include KodiakPkg/KodiakPkg.dsc.inc

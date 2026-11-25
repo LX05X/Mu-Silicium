@@ -81,6 +81,7 @@ READ_LOCK_STATUS   = TRUE
 
   !include Include/APRIORI.inc
   !include Include/DXE.inc
+  !include Include/RAW.inc
 
   # RAM Manager provides the usable DDR ranges to DXE and to a Linux payload.
   INF SiliciumPkg/Drivers/RamManagerDxe/RamManagerDxe.inf
