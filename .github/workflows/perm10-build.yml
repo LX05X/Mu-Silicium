@@ -3,6 +3,9 @@ name: Build PERM10 UEFI
 on:
   workflow_dispatch:
     inputs:
+      device:
+        description: 'Device codename under Platforms/ or Resources/Configs'
+        default: 'perm10'
       build_mode:
         description: 'EDK2 build target'
         type: choice
@@ -143,7 +146,7 @@ jobs:
         run: |
           set -o pipefail
           echo "build mode: $BUILD_MODE"
-          python build_uefi.py -d perm10 -r "$BUILD_MODE" 2>&1 | tee build-perm10.log
+          python build_uefi.py -d "${{ inputs.device || 'perm10' }}" -r "$BUILD_MODE" 2>&1 | tee build-perm10.log
 
       - name: Collect outputs
         if: always()
