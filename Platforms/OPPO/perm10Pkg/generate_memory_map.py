@@ -8,6 +8,14 @@ ROOT = Path(__file__).resolve().parent
 SOURCE = ROOT / "Resources/uefiplatLA.cfg"
 OUTPUT = ROOT / "Library/MemoryMapLib/MemoryMapLib.c"
 ROW = re.compile(r'^\s*(0x[0-9A-Fa-f]+)\s*,\s*(0x[0-9A-Fa-f]+)\s*,\s*"([^"]+)"\s*,\s*(\w+)\s*,\s*(\w+)\s*,\s*(\w+)\s*,\s*(\w+)\s*,\s*(\w+)\s*$')
+# Bring-up A/B: spacewar's tree puts the DXE heap right after the display
+# reservation (0xE3400000), while the PERM10 XBL map places it at 0x9C700000.
+# If the low region is not actually usable on this board, DXE core dies at
+# startup; this override lets the placement be tested without editing the map.
+RELOCATE = {
+    "DXE Heap": (0xE3400000, 0x03100000),
+}
+
 EXTRA = [
     (0x80880000, 0x00004000, "Reserved XBL", "AddMem", "MEM_RES", "UNCACHEABLE", "Reserv", "UNCACHED_UNBUFFERED_XN"),
     (0x808FF000, 0x00001000, "APSS", "AddMem", "SYS_MEM", "SYS_MEM_CAP", "Conv", "WRITE_BACK_XN"),
@@ -37,6 +45,18 @@ def extract_rows():
             continue
         rows.append((int(address, 16), int(length, 16), name, hob, resource, attrs, memtype, arm))
     rows.extend(EXTRA)
+
+    # Apply placement overrides (see RELOCATE above).
+    if RELOCATE:
+        rows = [
+            (RELOCATE[name][0], RELOCATE[name][1], name) + tuple(rest)
+            if name in RELOCATE
+            else tuple(row)
+            for row in rows
+            for name in (row[2],)
+            for rest in (row[3:],)
+        ]
+
     rows.sort(key=lambda row: row[0])
     for first, second in zip(rows, rows[1:]):
         if first[0] >= 0x80000000 and first[1] and first[0] + first[1] > second[0]:
