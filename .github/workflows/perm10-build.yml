@@ -154,12 +154,16 @@ jobs:
           set -euo pipefail
           mkdir -p artifact/image artifact/tree
           cp -v build-perm10.log artifact/image/ || true
-          cp -v Mu-perm10*.bin artifact/image/ 2>/dev/null || true
-          cp -v Mu-perm10*.img artifact/image/ 2>/dev/null || true
-          for img in Mu-perm10*.img; do
+          cp -v Mu-*.bin artifact/image/ 2>/dev/null || true
+          cp -v Mu-*.img artifact/image/ 2>/dev/null || true
+          for img in Mu-*.img; do
             [ -f "$img" ] || continue
-            python Platforms/OPPO/perm10Pkg/check_boot_img.py "$img" \
-              --driver-dir Binaries/spacewar/QcomPkg/Drivers | tee artifact/image/boot-img-check.txt
+            case "$img" in
+              Mu-perm10*.img)
+                python Platforms/OPPO/perm10Pkg/check_boot_img.py "$img" \
+                  --driver-dir Binaries/spacewar/QcomPkg/Drivers | tee artifact/image/boot-img-check.txt ;;
+              *) echo "skipping perm10-specific checks for $img" ;;
+            esac
             sha256sum "$img" | tee artifact/image/Mu-perm10.img.sha256
           done
           if [ -f Build/perm10Pkg/DEBUG_CLANGPDB/FV/SILICIUM_UEFI.fd ]; then
