@@ -102,6 +102,44 @@ device tree passed explicitly. Its `/memory` node is a zero placeholder, so the
 kernel takes RAM from the UEFI memory map, which makes RamManagerDxe mandatory
 for a Linux boot as well.
 
+## Mu-Aloha provenance of the working firmware (2026-11)
+
+The Reno7 image that boots on the K10 is **not** a Mu-Silicium build. It is a
+Mu-Aloha (`mu_aloha_platforms`, Sm7325/KodiakPkg) build with the
+`Xinyang666yyds/oppo-pfjm10` device package:
+
+| Property | Value |
+|---|---|
+| Boot config | `build_cfg/sm7325.json`: `UEFI_BASE 0x9FC41000`, `UEFI_SIZE 0x002BF000` |
+| Platform | `KodiakNoSb.dsc` (no secure boot; 175 FFS modules, no DB/DBX/KEK/PK) |
+| Build stamp | `PcdFirmwareVersionString` from `timebuild.sh` = `YYMM.<day-percent>`; the working image says `2606.53`, i.e. built 2026-06-16 |
+| Device package | DSDT.aml 65146 bytes (matches repo HEAD) |
+
+Reproducing it works: the CI at `LX05X/aloha-pfjm10-ci` builds the device package
+with `mu_aloha_platforms` and produces an FD of the same size (0x2BF000) and a
+boot image of the same size. Comparing the built FD with the working one module
+by module:
+
+```text
+FFS modules: 175 vs 175, same GUID set
+shim:        byte-identical, FD_BASE 0x9FC41000 + 0x2BF000
+differing:   AcpiTables 0x22B62 vs 0x264FA  (ours smaller by 0x3998)
+             BdsDxe     0x5628E vs 0x5568E  (ours bigger by 0xC00)
+             MsBootPolicy 0x4E23C vs 0x4DA3C (ours bigger by 0x800)
+             BootMenu   0x4B8D6 vs 0x4B0D6  (ours bigger by 0x800)
+```
+
+`AcpiTables` differences come from the `SurfaceDuoACPI` submodule version;
+the three application modules come from `AndromedaPkg`. Both are pinned by the
+`mu_aloha_platforms` commit, so the working image was built from a different
+commit than the 2026-06-16 one used so far. Bisecting that commit is possible
+without the device: build a candidate, extract these four module sizes with
+`modsizes.py` and compare.
+
+The Mu-Silicium side remains blocked: a stock Mu-Silicium build of spacewar
+(SM7325, unmodified) hangs at the OPPO logo on the K10, so Mu-Silicium's Kodiak
+firmware does not run on this board as-is, independently of our device package.
+
 ## Bring-up log (2026-11)
 
 Facts established on hardware, in order of discovery:
