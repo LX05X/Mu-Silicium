@@ -34,7 +34,7 @@
   *_*_AARCH64_CC_FLAGS = -DPERM10_SEC_TRACE=1 -DPERM10_HALT_LEVEL=0
 
 [LibraryClasses]
-  MemoryMapLib|perm10Pkg/Library/MemoryMapLib/MemoryMapLib.inf
+  MemoryMapLib|spacewarPkg/Library/MemoryMapLib/MemoryMapLib.inf
   ConfigurationMapLib|perm10Pkg/Library/ConfigurationMapLib/ConfigurationMapLib.inf
 
 [Components]
