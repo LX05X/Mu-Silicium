@@ -85,6 +85,9 @@ READ_LOCK_STATUS   = TRUE
   # RAM Manager provides the usable DDR ranges to DXE and to a Linux payload.
   INF SiliciumPkg/Drivers/RamManagerDxe/RamManagerDxe.inf
 
+  # Boot policy, boot manager UI and logos (the Mu front end).
+  !include SiliciumPkg/Extra.fdf.inc
+
 [FV.FVMAIN_COMPACT]
 FvAlignment        = 8
 ERASE_POLARITY     = 1
