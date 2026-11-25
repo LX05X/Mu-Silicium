@@ -18,30 +18,7 @@
 
 #include "Sec.h"
 
-
-#ifndef PERM10_HALT_LEVEL
-#define PERM10_HALT_LEVEL 0
-#endif
-
-//
-// PERM10 bring-up: stop dead at a chosen stage so the device either reboots
-// (never reached the stage) or stays black forever (reached it).
-//
-STATIC
-VOID
-Perm10Halt (
-  IN UINTN  Level
-  )
-{
-  if (Level == PERM10_HALT_LEVEL) {
-    for ( ; ; ) {
-      __asm__ __volatile__ ("wfi");
-    }
-  }
-}
-
 #ifndef MDEPKG_NDEBUG
-#ifndef PERM10_SEC_TRACE
 STATIC
 VOID
 ClearFrameBuffer (VOID)
@@ -58,16 +35,12 @@ ClearFrameBuffer (VOID)
   }
 }
 
-#endif
-
 STATIC
 VOID
 PrintFirmwareVersion (VOID)
 {
-#ifndef PERM10_SEC_TRACE
   // Clear Frame Buffer
   ClearFrameBuffer ();
-#endif
 
   // Print UEFI Version Message
   DEBUG ((EFI_D_WARN, "\n"));
@@ -115,119 +88,21 @@ InitializeMemory (VOID)
   return EFI_SUCCESS;
 }
 
-
-
-#ifdef PERM10_SEC_TRACE
-//
-// Draw a 64-bit value as sixteen hex digits on the splash framebuffer using a
-// 5x7 font, so an exception address can be photographed without a serial port.
-//
-VOID
-Perm10PanicPaint (
-  IN UINT64  Value
-  )
-{
-  EFI_MEMORY_REGION_DESCRIPTOR  Region;
-  UINT32                       *Pixels;
-  UINTN                         Count;
-  UINTN                         Index;
-
-  // Stop further exceptions while we paint.
-  __asm__ __volatile__ ("msr daifset, #0xf");
-
-  Region.Address = 0;
-  Region.Length  = 0;
-  LocateMemoryRegionByName ("Display Reserved", &Region);
-  LocateMemoryRegionByName ("Display_Reserved", &Region);
-  if ((Region.Address == 0) || (Region.Length == 0)) {
-    for ( ; ; ) {
-      __asm__ __volatile__ ("wfi");
-    }
-  }
-
-  Pixels = (UINT32 *)(UINTN)Region.Address;
-  Count  = Region.Length / sizeof (UINT32);
-  if (Count > (8u * 1024 * 1024 / sizeof (UINT32))) {
-    Count = 8u * 1024 * 1024 / sizeof (UINT32);
-  }
-
-  // Solid magenta: "an exception reached the SEC handler".
-  for (Index = 0; Index < Count; Index++) {
-    Pixels[Index] = 0x00FF00FF;
-  }
-
-  (VOID)Value;
-
-  for ( ; ; ) {
-    __asm__ __volatile__ ("wfi");
-  }
-}
-
-#endif
-
-#ifdef PERM10_SEC_TRACE
-//
-// PERM10 bring-up instrumentation: paint the boot splash framebuffer and hold
-// the colour so the last completed initialisation step stays on the panel.
-// Colours are documented in Platforms/OPPO/perm10Pkg/README.md.
-//
-STATIC
-VOID
-Perm10Trace (
-  IN UINT32  Colour
-  )
-{
-  EFI_MEMORY_REGION_DESCRIPTOR  Region;
-  UINT32                       *Pixels;
-  UINTN                         Count;
-  UINTN                         Index;
-  volatile UINTN                Spin;
-
-  Region.Address = 0;
-  Region.Length  = 0;
-  LocateMemoryRegionByName ("Display Reserved", &Region);
-  LocateMemoryRegionByName ("Display_Reserved", &Region);
-  if ((Region.Address == 0) || (Region.Length == 0)) {
-    return;
-  }
-
-  Pixels = (UINT32 *)(UINTN)Region.Address;
-  Count  = Region.Length / sizeof (UINT32);
-
-  for (Index = 0; Index < Count; Index++) {
-    Pixels[Index] = Colour;
-  }
-
-  // Roughly a few hundred milliseconds at 1-2 GHz; only needs to be visible.
-  for (Spin = 0; Spin < 20000000; Spin++) {
-    __asm__ __volatile__ ("nop");
-  }
-}
-#else
-#define Perm10Trace(colour)
-#endif
-
 STATIC
 VOID
 SecMain (VOID)
 {
   EFI_STATUS Status;
 
-  Perm10Trace (0x0000FFFF); // cyan: entered SecMain
-
   // Do Platform Specific Initialization
   PlatformInitialize ();
-  Perm10Trace (0x00FF0000); // red: PlatformInitialize returned
 
 #ifndef MDEPKG_NDEBUG
   // Initialize Serial Port
   Status = SerialPortInitialize ();
   if (EFI_ERROR (Status)) {
-    Perm10Trace (0x00FF00FF); // magenta: serial init failed
     return;
   }
-
-  Perm10Trace (0x00FFFF00); // yellow: serial init done
 
   // Print Firmware Version
   PrintFirmwareVersion ();
@@ -240,12 +115,8 @@ SecMain (VOID)
   // Initialize Memory
   Status = InitializeMemory ();
   if (EFI_ERROR (Status)) {
-    Perm10Trace (0x00FF0080); // pink: memory init failed
     return;
   }
-
-  Perm10Trace (0x0000FF00); // green: memory init done
-  Perm10Halt (2);
 
   // Build CPU HOB
   BuildCpuHob (ArmGetPhysicalAddressBits (), PcdGet8 (PcdPrePiCpuIoSize));
@@ -256,12 +127,8 @@ SecMain (VOID)
   // Initialize Platform HOBs
   Status = PlatformPeim ();
   if (EFI_ERROR (Status)) {
-    Perm10Trace (0x00800040); // purple: PlatformPeim failed
     return;
   }
-
-  Perm10Trace (0x000000FF); // blue: PlatformPeim done
-  Perm10Halt (3);
 
   // Run Library Cconstructors
   ProcessLibraryConstructorList ();
@@ -270,29 +137,19 @@ SecMain (VOID)
   Status = DecompressFirstFv ();
   if (EFI_ERROR (Status)) {
     DEBUG ((EFI_D_ERROR, "Failed to Decompress FV! Status = %r\n", Status));
-    Perm10Trace (0x00808000); // olive: FV decompression failed
     return;
   }
-
-  Perm10Trace (0x00FFFFFF); // white: FV decompressed
-  Perm10Halt (4);
 
   // Load DXE Core
   Status = LoadDxeCoreFromFv (NULL, 0);
   if (EFI_ERROR (Status)) {
     DEBUG ((EFI_D_ERROR, "Failed to Load DXE Core! Status = %r\n", Status));
   }
-
-#ifdef PERM10_SEC_TRACE
-  Perm10Trace (0x00FFFFFF); // white: DXE core queued
-#endif
 }
 
 VOID
 SecEntry (VOID)
 {
-  Perm10Halt (1);
-
   // Disable Data Cache
   ArmDisableDataCache ();
 
