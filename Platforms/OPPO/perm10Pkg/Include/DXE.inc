@@ -113,3 +113,19 @@
   INF Binaries/spacewar/QcomPkg/Drivers/RNGDxe/RngDxe.inf
   INF Binaries/spacewar/QcomPkg/Drivers/PILDxe/PILDxe.inf
   INF Binaries/spacewar/QcomPkg/Drivers/PILProxyDxe/PILProxyDxe.inf
+
+  # Vendor UEFI driver set that the working build carries
+  INF Binaries/spacewar/QcomPkg/Drivers/ASN1X509Dxe/ASN1X509Dxe.inf
+  INF Binaries/spacewar/QcomPkg/Drivers/EmbeddedMonotonicCounter/EmbeddedMonotonicCounter.inf
+  INF Binaries/spacewar/QcomPkg/Drivers/FontDxe/FontDxe.inf
+  INF Binaries/spacewar/QcomPkg/Drivers/FvUtilsDxe/FvUtilsDxe.inf
+  INF Binaries/spacewar/QcomPkg/Drivers/MinidumpTADxe/MinidumpTADxe.inf
+  INF Binaries/spacewar/QcomPkg/Drivers/ParserDxe/ParserDxe.inf
+  INF Binaries/spacewar/QcomPkg/Drivers/QcomBds/QcomBds.inf
+  INF Binaries/spacewar/QcomPkg/Drivers/QcomWDogDxe/QcomWDogDxe.inf
+  INF Binaries/spacewar/QcomPkg/Drivers/ResetRuntimeDxe/ResetRuntimeDxe.inf
+  INF Binaries/spacewar/QcomPkg/Drivers/SecRSADxe/SecRSADxe.inf
+  INF Binaries/spacewar/QcomPkg/Drivers/SerialPortDxe/SerialPortDxe.inf
+  INF Binaries/spacewar/QcomPkg/Drivers/SimpleTextInOutSerialDxe/SimpleTextInOutSerial.inf
+  INF Binaries/spacewar/QcomPkg/Drivers/VariableDxe/VariableDxe.inf
+  INF Binaries/spacewar/QcomPkg/Drivers/VerifiedBootDxe/VerifiedBootDxe.inf
