@@ -102,6 +102,42 @@ device tree passed explicitly. Its `/memory` node is a zero placeholder, so the
 kernel takes RAM from the UEFI memory map, which makes RamManagerDxe mandatory
 for a Linux boot as well.
 
+## Bring-up log (2026-11)
+
+Facts established on hardware, in order of discovery:
+
+1. **The boot image must use Android header v3.** With a v0 header the K10 ABL
+   produced a 2-3 s reboot loop and never executed the payload. With v3 our
+   firmware executes and SEC completes (verified with framebuffer beacons).
+2. **A PFJM10/Reno7 Mu-Silicium FD built for header v3 boots on the K10** and
+   shows the Mu boot-manager recovery screen (`aka.ms/devicerecovery`). Its
+   `uefiplat` config is byte-identical to PERM10's apart from the `TZApps`
+   reservation, and it enumerates on USB.
+3. **Our own FD never reaches DXE dispatch.** After SEC (FV decompressed, DXE
+   core queued) the device shows ~10 s of black screen and resets. A beacon
+   driver placed immediately after `DxeMain` in APRIORI is never executed.
+   Eliminated causes: generated memory map, spacewar's memory map verbatim,
+   `DXE Heap` placement, FD base/size geometry, SEC instrumentation, Mu boot
+   policy/UI components, `uefiplat.cfg`/`SecParti.cfg`/`uefipil.cfg` embedding,
+   `DisplayDxe`/`CPRDxe` with the panel XML set.
+4. **Booting Linux directly through ABL also fails.** A v3 boot image with the
+   Reno7 kernel plus an Alpine initramfs, and a vendor_boot carrying either
+   their device tree or `perm10-linux.dtb`, shows the OPPO logo and then
+   resets. Adding a configfs ACM gadget console produced no host-side device,
+   so the kernel dies before initramfs.
+5. **Internal storage is not a usable boot medium for the working FD.** A FAT32
+   image written to `vendor_boot` is not offered as a boot option, and changing
+   that partition's GPT type to ESP broke the partition table (recovered from a
+   GPT backup).
+
+The remaining blocker for every path except USB is visibility: the working
+firmware keeps the panel off for our builds, and there is no UART access, so a
+failing kernel or DXE stage produces no observable output.
+
+Next steps once a USB OTG adapter is available: boot the verified Reno7 FD,
+select the prepared Alpine ESP (`perm10-usb.img.gz`), and work from the GRUB
+menu where kernel logs are visible.
+
 ## Hardware inventory
 
 `extract_hw_inventory.py` reads the extracted runtime device tree and writes `Resources/perm10-hardware-inventory.md`: 70 nodes, 32 enabled. Confirmed peripherals include UFS at `0x1d84000` (SPI 265), USB3 `ssusb@a600000`, SPMI arbiter `0xc440000`, GICv3 `0x17a00000` with redistributors `0x17a60000`, PDC `0xb220000`, RSC `0x18200000`/`0xaf20000`, and the PMIC set **PM7325, PM7325B, PM8350C, PMK8350, PMR735A**. Bus-attached devices include a Novatek `NVT-ts` touch controller on `i2c@a94000`, `rtc6226` NFC on `i2c@984000`, four `pm8008` camera PMICs, and a single `gpio_keys/vol_up` node. This inventory is the basis for the ACPI work; it is not yet turned into tables.
